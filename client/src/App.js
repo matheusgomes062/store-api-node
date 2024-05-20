@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
+import debounce from "lodash.debounce";
 import "./App.css";
 
 function App() {
@@ -9,6 +10,11 @@ function App() {
     company: "",
     featured: "",
     sort: "",
+  });
+
+  const [localSearchParams, setLocalSearchParams] = useState({
+    name: "",
+    company: "",
   });
 
   useEffect(() => {
@@ -29,12 +35,23 @@ function App() {
     fetchData();
   }, [searchParams]);
 
+  const updateSearchParams = useCallback(
+    debounce((params) => {
+      setSearchParams((prev) => ({
+        ...prev,
+        ...params,
+      }));
+    }, 500), // 500ms debounce time
+    []
+  );
+
   const handleSearch = (e) => {
     const { name, value } = e.target;
-    setSearchParams((prev) => ({
+    setLocalSearchParams((prev) => ({
       ...prev,
       [name]: value,
     }));
+    updateSearchParams({ [name]: value });
   };
 
   const handleSortChange = (e) => {
@@ -51,6 +68,12 @@ function App() {
     }));
   };
 
+  useEffect(() => {
+    return () => {
+      updateSearchParams.cancel();
+    };
+  }, [updateSearchParams]);
+
   return (
     <div className="App">
       <header className="App-header">
@@ -61,7 +84,7 @@ function App() {
             name="name"
             placeholder="Search by name"
             className="search-input"
-            value={searchParams.name}
+            value={localSearchParams.name}
             onChange={handleSearch}
           />
           <input
@@ -69,7 +92,7 @@ function App() {
             name="company"
             placeholder="Search by company"
             className="search-input"
-            value={searchParams.company}
+            value={localSearchParams.company}
             onChange={handleSearch}
           />
           <select name="featured" className="search-input" onChange={handleFeaturedChange} value={searchParams.featured}>
